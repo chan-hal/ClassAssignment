@@ -37,6 +37,7 @@
             //オブジェクトの表示
             this.display = function (ctx) {
                 ctx.fillText(this.id.toString(10) + ":" + this.txt, this.x, this.y);
+                //console.log(this.id);
             }
 
             //位置決め
@@ -68,6 +69,13 @@
         }
 
         //全ての登録されたオブジェクトを表示する
+        function displayObjects(){
+            for(let i = 0; i < list.length; i++){
+                list[i].display(context);
+            }
+        }
+
+        //全ての登録されたオブジェクトを動かす
         function moveObjects() {
             for (let i = 0; i < list.length; i++) {
                 list[i].move();
@@ -77,12 +85,13 @@
         addObject(new textObject("Hello", 100, 20));
         addObject(new textObject("World", 200, 20));
         addObject(new textObject("りんご", 200, 120));
+        addObject(new textObject("スターフルーツ", 10, 120));
 
         function draw(){
             context.fillStyle = "rgb(128, 255, 128)";
-            context.fillRect =(0, 0, canvas.width, canvas.height);
+            context.fillRect(0, 0, canvas.width, canvas.height);
 
-            context.fillStyle = "rgb(0, 0, 0)"
+            context.fillStyle = "rgb(0, 0, 0)";
 
             moveObjects();
             displayObjects();
