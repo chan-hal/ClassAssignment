@@ -1,0 +1,11 @@
+.item {
+    outline: solid 1px #0000ff; 
+    width: 100px;
+    background: #FF3;
+ }
+ 
+ .target {
+    outline: solid 1px #0000ff; 
+    width: 100px;
+    background: #99F;
+ }
