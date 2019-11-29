@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <title>Object の扱いのサンプル</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+
+<body>
+    <p id="p1" draggable="false" ondragstart="dragstart_handler(event);">
+        Canvasにオブジェクト化したテキストを表示する<br>
+        -すべてのオブジェクトは list という配列に追加されて管理されている<br>
+        -ボタンを押すと、入力された(長さ１以上の)文字列をもつテキストオブジェクトが決められた位置に追加される<br>
+        -オブジェクトはその上でマウスボタンを押すことによりhighlightedという状態になり、移動可能になる <br>
+        -オブジェクトはダブルクリックの操作で selected という状態を変更する<br>
+        --selected をうまく使えば２つのオブジェクトのリンクを定義することも可能になるのですがそこはあえて未定義<br>
+    </p>
+
+    <input id="status" type="text" style="width:396px;" value=""><br>
+    <canvas id="canvas1" width="400" height="300"></canvas><br>
+    <input id="txt" type="text" value="◯">
+    <input id="add" type="button" value="add text" onclick="addText();">←押してください
+
+
+    <script type="text/javascript">
+        // canvas要素のDOMオブジェクトを取得
+        let canvas = document.getElementById("canvas1");
+        // 描画コンテキストを取得する
+        let context = canvas.getContext("2d");
+
+        let list = []; //オブジェクトを格納する配列
+        let lastID = -1;
+        let mode = 0; //0:display, 1:select, 2:edit
+
+        let downX;
+        let downY;
+
+        let mouseX = 0;
+        let mouseY = 0;
+
+        canvas.addEventListener('mousedown', onMouseDown, false);
+        canvas.addEventListener('mouseup', onMouseUp, false);
+        canvas.addEventListener('mousemove', movehandler, false);
+        canvas.addEventListener('dbclick', onClick, false);
+
+        //text objectの定義
+        function textObject(text) {
+            this.id = ++lastID;
+            this.selected = false;
+            this.highlight = false;
+
+            this.txt = text;//文字列は複製後コピーされる
+            this.x = 8 + (Math.floor(this.id / 10));
+            this.y = 4 + (this.id % 10) * 30;
+
+            //get object ID
+            this.getID = function () {
+                return this.id;
+            }
+
+            //オブジェクトの表示
+            this.display = function (ctx) {
+                if (this.selected) {
+                    ctx.fillStyle = "rgb(255, 255, 255)";
+                } else {
+                    ctx.fillStyle = "rgb(200, 200, 200)";
+                }
+                ctx.fillRect(this.x, this.y, 80, 18);
+
+                if (this.highlight) {
+                    ctx.strokeStyle = "rgb(255, 0, 0)";
+                } else {
+                    ctx.strokeStyle = "rgb(0, 0, 0)";
+                }
+                ctx.strokeRect(this.x, this.y, 80, 18);
+
+                ctx.fillStyle = "rgb(0, 0, 0)";
+                ctx.fillText(this.id.toString(10) + ":" + this.txt, this.x + 2, this.y + 2, 76);
+            }
+
+            //ポインタの下にあるかどうかを判別する
+            this.checkHit = function (x, y) {
+                if (x >= this.x && x <= this.x + 80) {
+                    if (y >= this.y && y <= this.y + 18) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            //ポインタの下にある時にハイライトする
+            this.checkHL = function (x, y) {
+                if (x >= this.x && x <= this.x + 80) {
+                    if (y >= this.y && y <= this.y + 18) {
+                        this.highlight = true;
+                    }
+                } else {
+                    this.highlight = false;
+                }
+            }
+
+            this.store = function () {
+                this.lastX = this.x;
+                this.lastY = this.y;
+            }
+
+            this.restore = function () {
+                this.x = this.lastX;
+                this.y = this.lastY;
+            }
+            //位置決め　絶対値
+            this.place = function (x, y) {
+                this.x = x;
+                this.y = y;
+            }
+
+            //位置決め　相対値
+            this.move = function (dx, dy) {
+                this.x += dx;
+                this.y += dy;
+            }
+        }
+
+        //objを表示されるオブジェクトに追加する
+        function addObject(obj) {
+            list.push(obj);
+        }
+
+        //全ての登録されたオブジェクトを表示する
+        function displayObjectes() {
+            for (let i = 0; i < list.length; i +;) {
+                list.display(context);
+            }
+        }
+
+        function storeObjects() {
+            for (let i = 0; i < list.length; i++) {
+                list[i].store();
+            }
+        }
+
+        function restoreObjects() {
+            for (let i = 0; i < list.length; i++) {
+                list[i].store();
+            }
+        }
+
+        function moveHLObjects(dx, dy) {
+            for (let i = 0; i < list.length; i++) {
+                if (list[i].highlight) {
+                    list[i].move(dx, dy);
+                }
+            }
+        }
+
+        function checkHighlightObjects(x, y) {
+            for (let i = 0; i < list.length; i++) {
+                list[i].checkHL(x, y);
+            }
+        }
+
+        //ダブルクリックしたオブジェクトのselected状態を変える
+        function changeSelectedObjects(x, y) {
+            for (let i = 0; i < list.length; i++) {
+                if (list[i].checkHit(x, y)) {
+                    list[i].selected = !list[i].selected;
+                }
+            }
+        }
+
+        //mouse move handler
+        function movehandler(event) {
+            mouseX = event.offsetX;
+            mouseY = event.offsetY;
+
+            if (mode == 1) {
+                moveHLOBjects(mouseX - lastX, mouseY - lastY);
+                lastX = mosueX;
+                lastY = mouseY;
+            }
+        }
+
+        function showStatus() {
+            let text;
+
+            if (mode == 1) {
+                text = "mouse down"
+            } else {
+                text = "mouse up"
+            }
+            document.getElementById("status").value = "status:" + text;
+        }
+
+        function onDblClick(event) {
+            changeSelectedObjects(mouseX, mouseY);
+        }
+
+        function onMouseDown(event) {
+            //modeを1に設定
+            mode = 1;
+            showStatus();
+            downX = mouseX;
+            downY = mouseY;
+            lastX = downX;
+            lastY = downY;
+            checkHighlightObjects(downX, downY);
+        }
+
+        function onMouseUp(event) {
+            //modeを0に設定
+            mode = 0;
+            showStatus();
+            //全てのオブジェクトのハイライト状態を落とす
+            checkHighlightObjects(-1, -1);
+        }
+
+        //"add user"ボタンを押したとき
+        //指定されたテキストを持つ
+        //テキストオブジェクトを追加する
+        function addText() {
+            let txt = document.getElementById("txt").value;
+            if (txt != "") {
+                addObject(new textObject(txt));
+            }
+        }
+
+        let x = 100;
+        let y = 20;
+        let dx = 1;
+        let dy = 1;
+
+        addObject(new textObject("Apple"));
+        addObject(new textObject("Banana"));
+        addObject(new textObject("Cherry"));
+
+        function draw() {
+            context.fillStyle = "rgb(128, 255, 128)";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            context.fillStyle = "rgb(0, 0, 0)";
+
+            displayObjects();
+        }
+        setInterval(draw, 20)
+
+    </script>
+</body>
