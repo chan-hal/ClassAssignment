@@ -78,9 +78,10 @@
 
         context.fillStyle = "rgb(128, 255, 128)";
 
+        //元のコードにはない部分。
+        //壁にあたるたびに色が変わるようにした
         if(colorX === 1 && colorY === 1){
-            context.fillStyle = "rgb(128, 255, 128)";
-            
+            context.fillStyle = "rgb(128, 255, 128)";         
         }else if(colorX === -1 && colorY === 1){
             context.fillStyle = "rgb(128, 0, 128)";
         }else if(colorX === 1 && colorY === -1){
